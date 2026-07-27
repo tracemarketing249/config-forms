@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trace AgTech — Cocoa Traceability Data Capture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --amber:#F47B00;
+    --gold:#FEBA20;
+    --forest:#16342A;
+    --forest-light:#1F4D3B;
+    --parchment:#FBF7EF;
+    --card:#FFFFFF;
+    --ink:#241F19;
+    --ink-soft:#5B554C;
+    --line:#E7DFD0;
+    --line-soft:#F1EBDD;
+    --amber-tint:#FDEEDB;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Nunito Sans', sans-serif;
+    background:var(--parchment);
+    color:var(--ink);
+  }
+  h1,h2,h3,.display{
+    font-family:'Playfair Display', serif;
+  }
+  .app{
+    display:flex;
+    min-height:100vh;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:280px;
+    flex-shrink:0;
+    background:var(--forest);
+    color:#EFE9DA;
+    padding:2rem 1.5rem 2rem;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:.25rem;
+  }
+  .brand img{ width:42px; height:42px; }
+  .brand-name{ font-family:'Playfair Display', serif; font-weight:700; font-size:1.35rem; color:#FFF; line-height:1; }
+  .brand-sub{ font-family:'Nunito Sans', sans-serif; font-size:.68rem; letter-spacing:.14em; color:var(--gold); margin-left:52px; margin-top:-2px; text-transform:uppercase; }
+  .sidebar-tag{
+    font-size:.85rem;
+    color:#B9C9BE;
+    margin:1.1rem 0 2rem;
+    line-height:1.5;
+  }
+
+  .trail{ position:relative; margin-left:6px; }
+  .trail::before{
+    content:"";
+    position:absolute;
+    left:9px; top:10px; bottom:10px;
+    width:2px;
+    background:repeating-linear-gradient(to bottom, #3E6152 0, #3E6152 4px, transparent 4px, transparent 9px);
+  }
+  .stop{
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    padding:9px 6px;
+    cursor:pointer;
+    border-radius:8px;
+    transition:background .15s ease;
+  }
+  .stop:hover{ background:rgba(255,255,255,0.05); }
+  .stop-dot{
+    flex-shrink:0;
+    width:20px; height:20px;
+    border-radius:50%;
+    background:var(--forest-light);
+    border:2px solid #3E6152;
+    margin-top:1px;
+    z-index:1;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.65rem; font-weight:800; color:#B9C9BE;
+  }
+  .stop.done .stop-dot{ background:var(--gold); border-color:var(--gold); color:var(--forest); }
+  .stop.active .stop-dot{
+    background:var(--amber);
+    border-color:var(--amber);
+    color:#fff;
+    box-shadow:0 0 0 4px rgba(244,123,0,0.25);
+  }
+  .stop-label{
+    font-size:.85rem;
+    font-weight:600;
+    color:#CBD8CE;
+    line-height:1.3;
+    padding-top:1px;
+  }
+  .stop.active .stop-label{ color:#fff; }
+  .stop.done .stop-label{ color:#E9E2CF; }
+
+  /* ---------- MAIN ---------- */
+  .main{
+    flex:1;
+    padding:3rem 4vw 6rem;
+    max-width:900px;
+  }
+  .step{ display:none; animation:fade .25s ease; }
+  .step.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:.72rem;
+    font-weight:800;
+    color:var(--amber);
+    margin-bottom:.4rem;
+  }
+  .step h2{
+    font-size:1.9rem;
+    margin:0 0 .5rem;
+    color:var(--forest);
+  }
+  .step-intro{
+    color:var(--ink-soft);
+    font-size:.98rem;
+    line-height:1.6;
+    max-width:640px;
+    margin-bottom:1.75rem;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:1.5rem 1.6rem;
+    margin-bottom:1.5rem;
+  }
+
+  label{
+    display:block;
+    font-size:.78rem;
+    font-weight:700;
+    color:var(--ink-soft);
+    margin-bottom:.3rem;
+  }
+  input[type=text], input[type=number], input[type=date], select, textarea{
+    width:100%;
+    font-family:'Nunito Sans', sans-serif;
+    font-size:.9rem;
+    padding:.55rem .7rem;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#FEFCF8;
+    color:var(--ink);
+  }
+  textarea{ resize:vertical; min-height:56px; }
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--amber);
+    box-shadow:0 0 0 3px var(--amber-tint);
+  }
+
+  table{ width:100%; border-collapse:collapse; }
+  th{
+    text-align:left;
+    font-size:.68rem;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    padding:0 .5rem .5rem 0;
+    font-weight:800;
+  }
+  td{ padding:.3rem .5rem .3rem 0; vertical-align:top; }
+  .example-tag{
+    display:inline-block;
+    font-size:.62rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--forest);
+    background:var(--line-soft);
+    padding:2px 7px;
+    border-radius:20px;
+    margin-bottom:.75rem;
+  }
+  .row-remove{
+    background:none; border:none; color:#B23B2E; cursor:pointer; font-size:1.1rem;
+    padding:.4rem; line-height:1;
+  }
+  .row-remove:hover{ color:#7A2419; }
+
+  .btn{
+    font-family:'Nunito Sans', sans-serif;
+    font-weight:700;
+    font-size:.85rem;
+    padding:.6rem 1.2rem;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--forest);
+    cursor:pointer;
+    transition:transform .1s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+  .btn:active{ transform:scale(0.98); }
+  .btn-add{
+    border:1.5px dashed #C9BFA6;
+    color:var(--forest);
+    background:transparent;
+    margin-top:.6rem;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg, var(--amber), var(--gold));
+    border:none;
+    color:#fff;
+    box-shadow:0 3px 10px rgba(244,123,0,0.3);
+  }
+  .btn-primary:hover{ box-shadow:0 5px 14px rgba(244,123,0,0.4); }
+  .btn-primary:disabled{ opacity:.6; cursor:default; box-shadow:none; }
+
+  .nav-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:2.2rem;
+    padding-top:1.5rem;
+    border-top:1px solid var(--line);
+  }
+
+  .activity-block{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:1.1rem 1.3rem;
+    margin-bottom:1rem;
+    background:#fff;
+  }
+  .activity-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:.6rem;
+    gap:1rem;
+  }
+  .activity-name{ font-weight:800; color:var(--forest); font-size:.98rem; }
+  .activity-name-input{ font-weight:800; color:var(--forest); font-size:.9rem; border:1px solid var(--line); border-radius:6px; padding:.4rem .55rem; flex:1; }
+  .yn{ display:flex; gap:1rem; align-items:center; font-size:.82rem; font-weight:700; color:var(--ink-soft); flex-shrink:0; }
+  .yn label{ display:flex; align-items:center; gap:5px; margin:0; font-weight:700; text-transform:none; letter-spacing:0; font-size:.82rem; }
+  .yn input{ width:auto; }
+
+  .qa-block{ margin-bottom:1.3rem; }
+  .qa-q{ font-weight:700; color:var(--forest); font-size:.92rem; margin-bottom:.4rem; }
+
+  .review-summary{ font-size:.88rem; color:var(--ink-soft); line-height:1.7; }
+  .review-actions{ display:flex; gap:.8rem; flex-wrap:wrap; margin-top:1.5rem; align-items:center; }
+  .submit-status{ font-size:.85rem; font-weight:700; margin-top:.8rem; }
+  .submit-status.ok{ color:#2C6B3F; }
+  .submit-status.err{ color:#B23B2E; }
+
+  .code-note{
+    background:var(--amber-tint);
+    border:1px solid #F2D5A6;
+    border-radius:10px;
+    padding:.9rem 1.1rem;
+    font-size:.85rem;
+    color:#7A4A0B;
+    margin-bottom:1.4rem;
+  }
+  .upload-box{
+    border:1.5px dashed #C9BFA6;
+    border-radius:10px;
+    padding:1rem 1.1rem;
+    margin-top:1rem;
+    background:var(--line-soft);
+  }
+  .upload-box p{ margin:0 0 .6rem; font-size:.85rem; color:var(--ink-soft); }
+  .file-name{ font-size:.82rem; font-weight:700; color:var(--forest); margin-top:.5rem; }
+
+  @media (max-width: 860px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:100%; height:auto; position:relative; }
+    .trail{ display:none; }
+    .main{ padding:2rem 5vw 4rem; }
+  }
+
+  @media print{
+    .sidebar, .nav-row, .btn-add, .row-remove{ display:none !important; }
+    .step{ display:block !important; page-break-after:always; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="data:image/png;base64,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" alt="Trace AgTech logo">
+      <div>
+        <div class="brand-name">Trace</div>
+      </div>
+    </div>
+    <div class="brand-sub">AgTech</div>
+    <p class="sidebar-tag">Cocoa traceability data capture — from farm to shelf, follow the trail below.</p>
+
+    <div class="trail" id="trail"></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- STEP 0: WELCOME -->
+    <section class="step active" data-step="0">
+      <div class="eyebrow">Welcome</div>
+      <h2>Let's map your cocoa supply chain</h2>
+      <p class="step-intro">
+        This form collects everything Trace AgTech needs to set up your account. Some sections ask you
+        to confirm the exact fields we should capture (you're designing the format, not entering live
+        data); others ask for actual reference lists or master data. Each section says which is which.
+      </p>
+      <div class="card">
+        <p style="margin:0 0 .6rem; font-weight:800; color:var(--forest);">Before you start</p>
+        <p style="margin:0 0 .5rem; color:var(--ink-soft); font-size:.9rem; line-height:1.6;">
+          Have this on hand: the names of anyone who needs system access, the varieties you handle, and
+          your pest/disease/pesticide/fertilizer lists ready in Excel to attach. If a section doesn't
+          apply to you, just mark it "Not required" and move on.
+        </p>
+      </div>
+      <div class="nav-row">
+        <span></span>
+        <button class="btn btn-primary" onclick="goTo(1)">Start &nbsp;→</button>
+      </div>
+    </section>
+
+    <!-- STEP 1: FARMER / ESTATE FORMAT -->
+    <section class="step" data-step="1">
+      <div class="eyebrow">Stop 1 of 9 — Format only, no data</div>
+      <h2>Farmer &amp; estate data collection format</h2>
+      <p class="step-intro">Confirm the fields we should capture per farmer/estate. Add or remove fields to match how you work — you don't need to enter actual farmer data here.</p>
+
+      <div class="card">
+        <label>Preferred farmer/estate code format</label>
+        <input type="text" id="code-format" placeholder="e.g. STATE-DISTRICT-0001">
+      </div>
+
+      <div class="card" id="section-farmer">
+        <table>
+          <thead><tr><th>Field name</th><th></th></tr></thead>
+          <tbody id="tbody-farmer"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addFieldRow('tbody-farmer')">+ Add field</button>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(0)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(2)">Next: User access →</button>
+      </div>
+    </section>
+
+    <!-- STEP 2: USER ACCESS -->
+    <section class="step" data-step="2">
+      <div class="eyebrow">Stop 2 of 9 — Actual data</div>
+      <h2>User access list</h2>
+      <p class="step-intro">Everyone who needs a login — office/admin dashboard users and mobile field-app users.</p>
+
+      <div class="card" id="section-users">
+        <span class="example-tag">Example rows shown below</span>
+        <table>
+          <thead><tr>
+            <th>Full name</th><th>Designation</th><th>Mobile</th><th>Email</th><th>User type</th><th>Region</th><th></th>
+          </tr></thead>
+          <tbody id="tbody-users">
+            <tr class="row-example">
+              <td>Priya Nair</td><td>Field Executive</td><td>9876543210</td><td>priya@clientco.com</td><td>Mobile</td><td>Idukki</td><td></td>
+            </tr>
+            <tr class="row-example">
+              <td>Rahul Menon</td><td>Operations Manager</td><td>9845098450</td><td>rahul@clientco.com</td><td>Admin</td><td>All</td><td></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn btn-add" onclick="addRow('tbody-users', rowTemplates.users)">+ Add user</button>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(3)">Next: Cocoa varieties →</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: COCOA VARIETIES -->
+    <section class="step" data-step="3">
+      <div class="eyebrow">Stop 3 of 9 — Actual data</div>
+      <h2>Cocoa variety master</h2>
+      <p class="step-intro">Every variety you grow or procure, with the units you report yield and area in.</p>
+
+      <div class="card" id="section-varieties">
+        <span class="example-tag">Example row shown below</span>
+        <table>
+          <thead><tr><th>Variety name</th><th>Yield unit</th><th>Area unit</th><th>Notes</th><th></th></tr></thead>
+          <tbody id="tbody-varieties">
+            <tr class="row-example">
+              <td>Forastero</td><td>kg/tree</td><td>acre</td><td>Primary variety, high yield</td><td></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn btn-add" onclick="addRow('tbody-varieties', rowTemplates.varieties)">+ Add variety</button>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(2)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(4)">Next: Pest &amp; disease →</button>
+      </div>
+    </section>
+
+    <!-- STEP 4: PEST & DISEASE -->
+    <section class="step" data-step="4">
+      <div class="eyebrow">Stop 4 of 9 — Upload your own file</div>
+      <h2>Pest &amp; disease master</h2>
+      <p class="step-intro">These are the column headers we need. Please prepare your own list in Excel using these exact headers, then attach it below — no need to retype it here.</p>
+
+      <div class="card" id="section-pestdisease">
+        <table>
+          <thead><tr><th>Type</th><th>Pest/disease name</th><th>Applicable crop</th><th>Applicable activity</th><th>Symptoms / notes</th></tr></thead>
+        </table>
+        <div class="upload-box">
+          <p>Attach your Pest &amp; Disease master (.xlsx or .csv)</p>
+          <input type="file" id="file-pestdisease" accept=".xlsx,.xls,.csv" onchange="handleFile(this,'pestdisease')">
+          <div class="file-name" id="filename-pestdisease"></div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(3)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(5)">Next: Pesticides →</button>
+      </div>
+    </section>
+
+    <!-- STEP 5: PESTICIDES -->
+    <section class="step" data-step="5">
+      <div class="eyebrow">Stop 5 of 9 — Upload your own file</div>
+      <h2>Pesticide master</h2>
+      <p class="step-intro">Column headers below. Prepare your product list in Excel using these headers and attach it — no need to retype it here.</p>
+
+      <div class="card" id="section-pesticides">
+        <table>
+          <thead><tr><th>Brand</th><th>Active ingredient</th><th>Category</th><th>Hazard level</th><th>Target pest/disease</th></tr></thead>
+        </table>
+        <div class="upload-box">
+          <p>Attach your Pesticide master (.xlsx or .csv)</p>
+          <input type="file" id="file-pesticides" accept=".xlsx,.xls,.csv" onchange="handleFile(this,'pesticides')">
+          <div class="file-name" id="filename-pesticides"></div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(4)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(6)">Next: Fertilizers →</button>
+      </div>
+    </section>
+
+    <!-- STEP 6: FERTILIZERS -->
+    <section class="step" data-step="6">
+      <div class="eyebrow">Stop 6 of 9 — Upload your own file</div>
+      <h2>Fertilizer master</h2>
+      <p class="step-intro">Column headers below. Prepare your list in Excel using these headers and attach it — no need to retype it here.</p>
+
+      <div class="card" id="section-fertilizers">
+        <table>
+          <thead><tr><th>Category</th><th>Brand</th><th>Notes</th></tr></thead>
+        </table>
+        <div class="upload-box">
+          <p>Attach your Fertilizer master (.xlsx or .csv)</p>
+          <input type="file" id="file-fertilizers" accept=".xlsx,.xls,.csv" onchange="handleFile(this,'fertilizers')">
+          <div class="file-name" id="filename-fertilizers"></div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(5)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(7)">Next: Crop activities →</button>
+      </div>
+    </section>
+
+    <!-- STEP 7: CROP ACTIVITY CONFIG -->
+    <section class="step" data-step="7">
+      <div class="eyebrow">Stop 7 of 9 — Format, editable</div>
+      <h2>Crop activity monitoring</h2>
+      <p class="step-intro">
+        Our standard field list per activity. Mark which activities you want tracked, edit the fields as
+        needed, and add any activity we've missed. If you don't need crop activity monitoring at all,
+        mark every activity "No" and move on.
+      </p>
+      <div id="activities"></div>
+      <button class="btn btn-add" onclick="addActivity()">+ Add activity</button>
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(6)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(8)">Next: Procurement →</button>
+      </div>
+    </section>
+
+    <!-- STEP 8: PROCUREMENT FORMAT -->
+    <section class="step" data-step="8">
+      <div class="eyebrow">Stop 8 of 9 — Format only, no data</div>
+      <h2>Procurement data format</h2>
+      <p class="step-intro">Confirm the fields captured at your collection centers. Add or remove fields to match your process — you don't need to enter actual procurement data here.</p>
+
+      <div class="code-note">
+        Standard calculation, for reference: <strong>Net Weight = Gross Weight − Tare Weight − Moisture Deduction</strong>,
+        and <strong>Total Amount = Net Weight × Unit Price</strong>. Remove or edit these fields below if your process differs.
+      </div>
+
+      <div class="card" id="section-procurement">
+        <table>
+          <thead><tr><th>Field name</th><th></th></tr></thead>
+          <tbody id="tbody-procurement"></tbody>
+        </table>
+        <button class="btn btn-add" onclick="addFieldRow('tbody-procurement')">+ Add field</button>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(7)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(9)">Next: Process &amp; ERP →</button>
+      </div>
+    </section>
+
+    <!-- STEP 9: PROCESS & ERP -->
+    <section class="step" data-step="9">
+      <div class="eyebrow">Stop 9 of 9</div>
+      <h2>Process &amp; ERP discovery</h2>
+      <p class="step-intro">These are open-ended — answer in your own words. We'll follow up with a call on anything that needs more detail.</p>
+      <div class="card" id="qa-container"></div>
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(8)">← Back</button>
+        <button class="btn btn-primary" onclick="goTo(10)">Review &amp; finish →</button>
+      </div>
+    </section>
+
+    <!-- STEP 10: REVIEW -->
+    <section class="step" data-step="10">
+      <div class="eyebrow">Almost there</div>
+      <h2>Review &amp; send</h2>
+      <p class="step-intro">
+        Submit sends your responses straight to Trace AgTech's tracking sheet. You can also download a copy for your own records.
+      </p>
+      <div class="card review-summary" id="review-summary"></div>
+      <div class="review-actions">
+        <button class="btn btn-primary" id="submit-btn" onclick="submitToSheet()">Submit to Trace AgTech &nbsp;↗</button>
+        <button class="btn" onclick="downloadJSON()">Download a copy (.json) &nbsp;↓</button>
+        <button class="btn" onclick="window.print()">Print / save as PDF</button>
+      </div>
+      <div class="submit-status" id="submit-status"></div>
+      <div class="nav-row">
+        <button class="btn" onclick="goTo(9)">← Back</button>
+        <span></span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — paste your Google Apps Script Web App URL here
+   (see setup instructions provided alongside this file)
+   ============================================================ */
+const SHEETS_WEBHOOK_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+const steps = [
+  "Welcome",
+  "Farmer & estate format",
+  "User access list",
+  "Cocoa variety master",
+  "Pest & disease upload",
+  "Pesticide upload",
+  "Fertilizer upload",
+  "Crop activity monitoring",
+  "Procurement format",
+  "Process & ERP discovery",
+  "Review & send"
+];
+let current = 0;
+
+function buildTrail(){
+  const trail = document.getElementById('trail');
+  trail.innerHTML = '';
+  steps.forEach((label, i) => {
+    const div = document.createElement('div');
+    div.className = 'stop';
+    div.id = 'stop-' + i;
+    div.onclick = () => goTo(i);
+    div.innerHTML = `<div class="stop-dot">${i===0?'':i}</div><div class="stop-label">${label}</div>`;
+    trail.appendChild(div);
+  });
+}
+
+function goTo(i){
+  current = i;
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelector(`.step[data-step="${i}"]`).classList.add('active');
+  document.querySelectorAll('.stop').forEach((s, idx) => {
+    s.classList.remove('active','done');
+    if(idx < i) s.classList.add('done');
+    if(idx === i) s.classList.add('active');
+  });
+  if(i === 10) buildReview();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ---------- Generic field-name rows (format definer) ---------- */
+function addFieldRow(tbodyId, value){
+  const tbody = document.getElementById(tbodyId);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" class="field-name" value="${value ? value.replace(/"/g,'&quot;') : ''}"></td><td><button class="row-remove" onclick="removeRow(this)">&times;</button></td>`;
+  tbody.appendChild(tr);
+}
+function fieldRowValues(tbodyId){
+  const vals = [];
+  document.getElementById(tbodyId).querySelectorAll('.field-name').forEach(inp => {
+    if(inp.value.trim() !== '') vals.push(inp.value.trim());
+  });
+  return vals;
+}
+
+const defaultFarmerFields = ["Farmer/Estate Name","Farmer/Estate Code","Mobile Number","Country","State","District","Tehsil","Village","Season","Field Executive Assigned"];
+const defaultProcurementFields = ["Collection Center","Farmer","Batch No.","Gross Weight","Tare Weight","Moisture Deduction","Net Weight","Grade","Unit Price","Total Amount"];
+
+/* ---------- Data-entry rows (real master data) ---------- */
+const rowTemplates = {
+  users: () => `<td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><select><option value="">Select</option><option>Admin</option><option>Mobile</option><option>Admin + Mobile</option></select></td><td><input type="text"></td><td><button class="row-remove" onclick="removeRow(this)">&times;</button></td>`,
+  varieties: () => `<td><input type="text"></td><td><select><option value="">Select</option><option>kg/tree</option><option>kg/plot</option><option>kg/ha</option><option>kg/acre</option><option>tonnes/ha</option><option>tonnes/acre</option></select></td><td><select><option value="">Select</option><option>acre</option><option>hectare</option><option>cent</option><option>sq.m</option></select></td><td><input type="text"></td><td><button class="row-remove" onclick="removeRow(this)">&times;</button></td>`
+};
+
+function addRow(tbodyId, templateFn){
+  const tbody = document.getElementById(tbodyId);
+  const tr = document.createElement('tr');
+  tr.innerHTML = templateFn();
+  tbody.appendChild(tr);
+}
+function removeRow(btn){
+  const tr = btn.closest('tr');
+  tr.parentNode.removeChild(tr);
+}
+
+/* ---------- File uploads for master lists ---------- */
+const uploadedFiles = {};
+function handleFile(input, key){
+  const file = input.files[0];
+  const label = document.getElementById('filename-' + key);
+  if(!file){ label.textContent = ''; delete uploadedFiles[key]; return; }
+  label.textContent = 'Attached: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  const reader = new FileReader();
+  reader.onload = () => {
+    uploadedFiles[key] = { name: file.name, size: file.size, base64: reader.result.split(',')[1] };
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------- Crop activity config ---------- */
+const defaultActivities = [
+  ["Land Preparation","Activity Date, Season, Plot, Field ID, Area, GPS Location, Method, Equipment Used, Labor Count, Labor Cost, Contractor, Start Time, End Time, Before Photo, After Photo, Remarks"],
+  ["Soil Testing","Sample Date, Plot, Sample ID, Laboratory, Soil Type, pH, EC, Organic Carbon, N, P, K, Micronutrients, Moisture, Report, Recommendations"],
+  ["Planting","Date, Variety, Seedling Batch, Quantity, Area, Spacing, Survival %, GPS, Supervisor, Photos"],
+  ["Irrigation","Date, Method, Water Source, Water Quantity, Duration, Pump, Fuel/Electricity, Operator, Weather"],
+  ["Fertilizer Application","Quantity, Unit, Area, Method, Cost, Photos"],
+  ["Pesticide Application","Date, Product, Active Ingredient, Target Pest, Dose, Unit, Equipment, Photos"],
+  ["Pest Monitoring","Date, Pest, Severity, Infestation %, Trap Count, Area Affected, Recommendation, Photos"],
+  ["Disease Monitoring","Date, Disease, Severity, Incidence %, Symptoms, Recommendation, Photos"],
+  ["Pruning","Date, Type, Trees Pruned, Area, Equipment, Labor, Biomass Removed, Photos"],
+  ["Harvest","Harvest Date, Batch No., Plot, Farmer, Variety, Quantity, Unit, Moisture %, Number of Pods, Grade, Reject Qty, Method, Labor, GPS, Photos"]
+];
+let activityCount = 0;
+function buildActivityBlock(name, data, removable){
+  activityCount++;
+  const i = activityCount;
+  const block = document.createElement('div');
+  block.className = 'activity-block';
+  block.id = 'activity-' + i;
+  const nameHtml = removable
+    ? `<input type="text" class="activity-name-input act-name" value="${name}" placeholder="Activity name">`
+    : `<span class="activity-name act-name-fixed">${name}</span>`;
+  block.innerHTML = `
+    <div class="activity-head">
+      ${nameHtml}
+      <div class="yn">
+        Required?
+        <label><input type="radio" name="act-req-${i}" value="Y" checked> Yes</label>
+        <label><input type="radio" name="act-req-${i}" value="N"> No</label>
+      </div>
+      ${removable ? `<button class="row-remove" onclick="removeActivity(${i})">&times;</button>` : ''}
+    </div>
+    <label>Data to capture (edit as needed)</label>
+    <textarea class="act-data">${data || ''}</textarea>
+    <label style="margin-top:.6rem;">Notes</label>
+    <input type="text" class="act-notes">
+  `;
+  document.getElementById('activities').appendChild(block);
+}
+function buildActivities(){
+  defaultActivities.forEach(([name, data]) => buildActivityBlock(name, data, false));
+}
+function addActivity(){
+  buildActivityBlock('', '', true);
+}
+function removeActivity(i){
+  const el = document.getElementById('activity-' + i);
+  if(el) el.parentNode.removeChild(el);
+}
+
+/* ---------- Process & ERP Q&A ---------- */
+const questions = [
+  "How many processing centers do you currently operate?",
+  "For each processing center, what are the distinct processing lines (e.g. cleaning line, drying line, roasting line)?",
+  "What are the processing stages within each line, in sequence (e.g. Cleaning → Fermentation → Drying → Grading → Packing)?",
+  "For each stage, what is the input and what is the output (e.g. Cleaning: input = raw wet beans, output = cleaned beans)?",
+  "Who is authorized to create Purchase Orders (POs)?",
+  "Is PO approval required before procurement? If yes, who approves, and at what value thresholds?",
+  "For each processing stage, what monitoring is required day-to-day (e.g. Drying — Day 1: photo + weight; Day 2: photo + moisture %)?",
+  "Do you currently use any ERP/inventory software? If yes, which one, and what should carry over?",
+  "Any other process detail we should know before configuring your account?"
+];
+function buildQA(){
+  const wrap = document.getElementById('qa-container');
+  questions.forEach((q, i) => {
+    const block = document.createElement('div');
+    block.className = 'qa-block';
+    block.innerHTML = `<div class="qa-q">${q}</div><textarea id="qa-${i}" placeholder="Type your answer here"></textarea>`;
+    wrap.appendChild(block);
+  });
+}
+
+/* ---------- Data collection for review/export/submit ---------- */
+function tableRows(tbodyId, fields){
+  const tbody = document.getElementById(tbodyId);
+  const rows = [];
+  tbody.querySelectorAll('tr').forEach(tr => {
+    if(tr.classList.contains('row-example')) return;
+    const inputs = tr.querySelectorAll('input, select, textarea');
+    const obj = {};
+    fields.forEach((f, idx) => { obj[f] = inputs[idx] ? inputs[idx].value : ''; });
+    const hasValue = Object.values(obj).some(v => v && v.trim() !== '');
+    if(hasValue) rows.push(obj);
+  });
+  return rows;
+}
+
+function collectData(){
+  const data = {};
+  data.submittedAt = new Date().toISOString();
+
+  data.farmerFormat = {
+    codeFormat: document.getElementById('code-format').value,
+    fields: fieldRowValues('tbody-farmer')
+  };
+
+  data.users = tableRows('tbody-users', ['name','designation','mobile','email','userType','region']);
+  data.varieties = tableRows('tbody-varieties', ['variety','yieldUnit','areaUnit','notes']);
+
+  data.masterFileUploads = Object.keys(uploadedFiles).map(key => ({
+    section: key,
+    fileName: uploadedFiles[key].name,
+    sizeKB: Math.round(uploadedFiles[key].size / 1024),
+    base64: uploadedFiles[key].base64
+  }));
+
+  data.activities = [];
+  document.querySelectorAll('.activity-block').forEach(block => {
+    const nameEl = block.querySelector('.act-name');
+    const req = block.querySelector('input[type=radio]:checked');
+    data.activities.push({
+      activity: nameEl.value !== undefined ? nameEl.value : nameEl.textContent,
+      required: req ? req.value : '',
+      dataToCapture: block.querySelector('.act-data').value,
+      notes: block.querySelector('.act-notes').value
+    });
+  });
+
+  data.procurementFormat = { fields: fieldRowValues('tbody-procurement') };
+
+  data.processErp = questions.map((q, i) => ({ question: q, answer: document.getElementById(`qa-${i}`).value }));
+
+  return data;
+}
+
+function buildReview(){
+  const d = collectData();
+  const el = document.getElementById('review-summary');
+  el.innerHTML = `
+    <p><strong>Farmer/estate code format:</strong> ${d.farmerFormat.codeFormat || '<em>not specified</em>'}</p>
+    <p><strong>Farmer/estate fields defined:</strong> ${d.farmerFormat.fields.length}</p>
+    <p><strong>Users listed:</strong> ${d.users.length}</p>
+    <p><strong>Cocoa varieties:</strong> ${d.varieties.length}</p>
+    <p><strong>Master data files attached:</strong> ${d.masterFileUploads.map(f => f.section).join(', ') || 'none yet'}</p>
+    <p><strong>Crop activities marked required:</strong> ${d.activities.filter(a => a.required === 'Y').length} of ${d.activities.length}</p>
+    <p><strong>Procurement fields defined:</strong> ${d.procurementFormat.fields.length}</p>
+    <p><strong>Process &amp; ERP questions answered:</strong> ${d.processErp.filter(q => q.answer && q.answer.trim() !== '').length} of ${d.processErp.length}</p>
+  `;
+}
+
+function downloadJSON(){
+  const data = collectData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'trace-agtech-cocoa-data-capture.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function submitToSheet(){
+  const status = document.getElementById('submit-status');
+  const btn = document.getElementById('submit-btn');
+  if(!SHEETS_WEBHOOK_URL || SHEETS_WEBHOOK_URL.indexOf('PASTE_YOUR') === 0){
+    status.className = 'submit-status err';
+    status.textContent = 'This form isn\'t connected to a sheet yet — use "Download a copy" instead and send the file.';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  const data = collectData();
+  fetch(SHEETS_WEBHOOK_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(data)
+  }).then(() => {
+    status.className = 'submit-status ok';
+    status.textContent = 'Submitted. Thank you — your Trace AgTech account manager will follow up.';
+    btn.textContent = 'Submitted ✓';
+  }).catch(() => {
+    status.className = 'submit-status err';
+    status.textContent = 'Something went wrong sending this. Please use "Download a copy" and email the file instead.';
+    btn.disabled = false;
+    btn.textContent = 'Submit to Trace AgTech ↗';
+  });
+}
+
+buildTrail();
+defaultFarmerFields.forEach(f => addFieldRow('tbody-farmer', f));
+defaultProcurementFields.forEach(f => addFieldRow('tbody-procurement', f));
+buildActivities();
+buildQA();
+goTo(0);
+</script>
+
+</body>
+</html>
